@@ -1,0 +1,29 @@
+---
+- name: create temporary directory
+  command: mktemp -d
+  register: dump_variables_mktemp
+
+- name: create yaml file
+  copy:
+    dest: "{{ dump_variables_mktemp.stdout }}/ansible_variables.yml"
+    content: |
+      # hostvars (ansible gathered, group_vars, host_vars) :
+      {{ hostvars[inventory_hostname] | to_nice_yaml }}
+      # playbook vars
+      {{ vars | to_nice_yaml }}
+
+- name: fetch file
+  fetch:
+    dest: "ansible_variables/{{ inventory_hostname }}/"
+    src: "{{ dump_variables_mktemp.stdout }}/ansible_variables.yml"
+    flat: true
+
+- name: temporary directory·name
+  debug:
+    var: dump_variables_mktemp.stdout
+
+- name: remove temporary directory
+  file:
+    path: "{{ dump_variables_mktemp.stdout }}"
+    state: absent
+  when: dump_variables_mktemp.stdout | search('^/tmp/tmp')
